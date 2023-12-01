@@ -1,0 +1,12 @@
+{
+  "name": "QuickLink History",
+  "version": "1.0",
+  "description": "QuickLink History（快速链接历史） 是一个方便的Chrome浏览器插件，它可以帮助您快速搜索和查看您最近7天内最常访问的12个网页地址。无论您是经常浏览特定网页还是需要快速访问最近的浏览记录，这个插件都能满足您的需求。",
+  "permissions": ["history","storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "clock.png"
+  },
+  "options_page": "options.html",
+  "manifest_version": 3
+}
