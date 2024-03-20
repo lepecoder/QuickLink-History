@@ -12,11 +12,27 @@
  */
 
 contentName = "typedUrl_div"
-urlDivMaxLength = 15
+urlLength = 15
 blackList = [
     "https://poe.com/ChatGPT",
     "https://bytedance.larkoffice.com/drive/me/"
 ]
+lastDays = 7
+
+function loadConfig() {
+    chrome.storage.sync.get({
+        lastDays: lastDays,
+        urlLength: urlLength,
+        blackList: blackList
+    }, function (items) {
+        console.log(items)
+        urlLength = items.urlLength;
+        lastDays = items.lastDays;
+        blackListStr = items.blackList;
+        blackList = blackListStr.split('\n');
+        showHistory();
+    });
+}
 
 
 // 新标签页打开历史链接
@@ -41,11 +57,17 @@ function buildPopupDom(data) {
     }
     popupDiv.appendChild(ul);
 
-    for (let i = 0, ie = Math.min(data.length, urlDivMaxLength); i < ie; ++i) {
+    for (let i = 0, ie = Math.min(data.length, urlLength); i < ie; ++i) {
         let a = document.createElement('a');
         a.href = data[i].url;
         a.appendChild(document.createTextNode(data[i].title));
         a.addEventListener('click', onAnchorClick);
+
+        let svg = document.createElement('img');
+        svg.src = "disable.svg";
+        svg.addEventListener('click', function(){
+            console.log("cli"+data[i].url);
+        });
 
         let urlSpan = document.createElement('span');
         urlSpan.textContent = ", url: " + data[i].url;
@@ -54,6 +76,7 @@ function buildPopupDom(data) {
         countSpan.textContent = ", count: " + data[i].visitCount;
 
         let li = document.createElement('li');
+        li.appendChild(svg);
         li.appendChild(a);
         li.appendChild(urlSpan);
         li.appendChild(countSpan);
@@ -69,6 +92,7 @@ function showHistory() {
     let oneTimeAgo = now - lastTime;
     chrome.history.search({
         'text': '',
+        'maxResults': 10000,
         'startTime': oneTimeAgo
     }, function (historyItems) {
         historyItems.sort(function (a, b) { return b.visitCount - a.visitCount; })
@@ -166,11 +190,13 @@ function buildTypedUrlList(divName) {
 
 const button = document.getElementById('button1');
 button.addEventListener('click', function () {
-    showHistory();
+    loadConfig();
+    // showHistory();
 });
 
 document.addEventListener('DOMContentLoaded', function () {
 
     // buildTypedUrlList('typedUrl_div');
-    showHistory();
+    // showHistory();
+    loadConfig();
 });

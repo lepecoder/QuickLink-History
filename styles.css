@@ -1,0 +1,24 @@
+#blackList {
+    vertical-align: top;
+}
+
+#urlLength {
+    width: 40px
+}
+
+li {
+    position: relative;
+    display: flex;
+    list-style-type: disc;
+    align-items: center;
+}
+
+li::before {
+    content: ''; 
+    position: absolute;
+    left: -1em; 
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: black;
+}

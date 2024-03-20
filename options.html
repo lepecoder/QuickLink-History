@@ -1,24 +1,73 @@
 <!DOCTYPE html>
 <html>
-<head><title>My Test Extension Options</title></head>
+
+<head>
+    <meta charset="UTF-8">
+    <title>QuickLink History Options</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+
+
+
 <body>
 
-Favorite color:
-<select id="color">
- <option value="red">red</option>
- <option value="green">green</option>
- <option value="blue">blue</option>
- <option value="yellow">yellow</option>
-</select>
+    <p>
+        <span>统计最近</span>
+        <select id="lastDays">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7" selected="true">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+        </select>
+        <span>天的历史记录</span>
+    </p>
+    <p>
+        显示最近
+        <input type="number" min="1" max="99" id="urlLength">
+        条历史记录
+    </p>
 
-<label>
-  <input type="checkbox" id="like">
-  I like colors.
-</label>
+    <p>
+        <span>域名黑名单</span>
+        <textarea oninput="adjustHeight()" id="blackList" cols="60"></textarea>
+    </p>
 
-<div id="status"></div>
-<button id="save">Save</button>
 
-<script src="options.js"></script>
+    Favorite color:
+    <select id="color">
+        <option value="red">red</option>
+        <option value="green">green</option>
+        <option value="blue">blue</option>
+        <option value="yellow">yellow</option>
+    </select>
+
+    <label>
+        <input type="checkbox" id="like">
+        I like colors.
+    </label>
+
+    <ul>
+        <li>alkwdj </li>
+        <li>alkwdj <img src="disable.svg" width="100" alt=""></li>
+        <li>alkwdj <img src="disable.svg" width="100" alt=""></li>
+    </ul>
+
+    <div id="status"></div>
+    <button id="save">Save</button>
+
+    <script src="options.js"></script>
+
 </body>
+
 </html>
