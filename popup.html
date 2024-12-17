@@ -1,11 +1,26 @@
 <!DOCTYPE html>
 <html>
-
+<!-- 设置编码 -->
+<meta charset="utf-8">
 <head>
     <title>Recently Typed URLs</title>
     <style>
         body {
-            min-width: 250px;
+            min-width: 450px;
+        }
+        th, td {
+            text-align: left; /* 设置标题和单元格内容左对齐 */
+            padding: 8px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td {
+            border: 1px solid #ddd;
         }
 
         
@@ -18,7 +33,24 @@
     <h2>Recently Typed URLs:</h2>
     <button id="button1">Clear history</button>
     <script src="popup.js"></script>
-    <div id="typedUrl_div"></div>
+    <div id="typedUrl_div">
+        <table id="typedUrl_table">
+            <tr>
+                <th>✖</th>
+                <th>网址</th>
+                <th>标题</th>
+                <th>count</th>
+            </tr>
+            <tr>
+                <td>
+                    <img src="disable.svg" alt="Disable Icon" width="16" height="16">
+                </td>
+                <td><a href="https://example.com">https://example.com</a></td>
+                <td>Example Title</td>
+                <td>123</td>
+            </tr>
+        </table>
+    </div>
 </body>
 
 </html>

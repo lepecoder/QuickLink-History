@@ -17,19 +17,20 @@ blackList = [
     "https://poe.com/ChatGPT",
     "https://bytedance.larkoffice.com/drive/me/"
 ]
+
+// 默认显示最近7天的浏览历史
 lastDays = 7
 
 function loadConfig() {
-    chrome.storage.sync.get({
+    chrome.storage.local.get({
         lastDays: lastDays,
         urlLength: urlLength,
         blackList: blackList
     }, function (items) {
-        console.log(items)
         urlLength = items.urlLength;
         lastDays = items.lastDays;
-        blackListStr = items.blackList;
-        blackList = blackListStr.split('\n');
+        blackList = items.blackList;
+        console.log(blackList)
         showHistory();
     });
 }
@@ -44,45 +45,117 @@ function onAnchorClick(event) {
     return false;
 }
 
+// 添加地址黑名单
+function addBlackList(url) {
+    blackList.push(url);
+    chrome.storage.local.set({
+        blackList: blackList
+    }, function () {
+        showHistory();
+    });
+}
 
+function addRow(url, title, count) {
+    let table = document.getElementById("typedUrl_table");
+    let url_link = document.createElement('a');
+    url_link.href = url;
+    // 截取url的前42个字符
+    url_title = url.substring(0, 42);
+    // 鼠标悬浮时显示完整url
+    url_link.addEventListener('mouseover', function () {
+        url_link.title = url;
+    });
+
+    url_link.appendChild(document.createTextNode(url_title));
+    url_link.addEventListener('click', onAnchorClick);
+    let svg = document.createElement('img');
+    svg.src = "disable.svg";
+    svg.addEventListener('click', function () {
+        addBlackList(url);
+    });
+    title_span = document.createElement('span');
+    title_span.title = title;
+    title_span.innerHTML = title.substring(0, 10);
+    // 鼠标悬浮显示完整title
+    title_span.addEventListener('mouseover', function () {
+        title_span.title = title;
+    });
+    let row = table.insertRow();
+    row.insertCell(0).appendChild(svg);
+    row.insertCell(1).appendChild(url_link);
+    row.insertCell(2).appendChild(title_span);
+    row.insertCell(3).innerHTML = count;
+}
+
+// 清空表格内容，但保留标题
+function clearTable() {
+    let table = document.getElementById("typedUrl_table");
+    while (table.rows.length > 1) {
+        table.deleteRow(1);
+    }
+}
+
+/**
+ * 判断URL是否匹配@match规则（处理特殊字符）
+ * @param {string} rule - @match 规则字符串
+ * @param {string} url - 需要判断的URL
+ * @returns {boolean} 是否匹配
+ */
+function matchRule(rule, url) {
+    // 1. 解析@match规则的scheme、host和path
+    let matchPattern = rule.trim();
+    if (!matchPattern.startsWith("*://") && !matchPattern.startsWith("http")) {
+        throw new Error("Invalid @match rule: " + matchPattern);
+    }
+
+    // 2. 对特殊字符进行转义
+    function escapeRegexChars(str) {
+        return str.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
+    }
+
+    // 3. 转换 @match 规则为正则表达式
+    let regexPattern = matchPattern
+        .replace(/\*/g, ".*")       // 将 * 转换成 .*
+        .split("://")               // 分离协议部分
+        .map(escapeRegexChars)      // 转义特殊字符
+        .join("://");               // 重新拼接协议
+
+    // 4. 处理协议
+    if (regexPattern.startsWith("\\*:\\/\\/")) {
+        regexPattern = "https?:\\/\\/" + regexPattern.slice(8); // 支持 http 和 https
+    }
+
+    // 5. 添加正则边界
+    regexPattern = "^" + regexPattern + "$";
+
+    // 6. 使用正则进行匹配
+    const regex = new RegExp(regexPattern);
+    return regex.test(url);
+}
+
+
+// 过滤黑名单
+function filterBlackList(item) {
+    // 将item的url与黑名单进行正则匹配
+    for (let i = 0, ie = blackList.length; i < ie; i++) {
+        if (matchRule(blackList[i], item.url)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+// 构建弹窗DOM
+// 使用表格展示最近访问历史
 function buildPopupDom(data) {
-    let popupDiv = document.getElementById(contentName);
-    data = data.filter(item => !blackList.includes(item.url))
-    // console.log(data1)
+    data = data.filter(item => filterBlackList(item))
+    clearTable();
 
-    let ul = document.createElement('ul');
-    // 移除之前的列表
-    if (popupDiv.firstChild != null) {
-        popupDiv.removeChild(popupDiv.firstChild);
+    for (let i = 0, ie = data.length; i < ie; i++) {
+        addRow(data[i].url, data[i].title, data[i].visitCount);
     }
-    popupDiv.appendChild(ul);
 
-    for (let i = 0, ie = Math.min(data.length, urlLength); i < ie; ++i) {
-        let a = document.createElement('a');
-        a.href = data[i].url;
-        a.appendChild(document.createTextNode(data[i].title));
-        a.addEventListener('click', onAnchorClick);
-
-        let svg = document.createElement('img');
-        svg.src = "disable.svg";
-        svg.addEventListener('click', function(){
-            console.log("cli"+data[i].url);
-        });
-
-        let urlSpan = document.createElement('span');
-        urlSpan.textContent = ", url: " + data[i].url;
-
-        let countSpan = document.createElement('span');
-        countSpan.textContent = ", count: " + data[i].visitCount;
-
-        let li = document.createElement('li');
-        li.appendChild(svg);
-        li.appendChild(a);
-        li.appendChild(urlSpan);
-        li.appendChild(countSpan);
-
-        ul.appendChild(li);
-    }
 }
 
 // 展示最近的浏览历史，时间、标题、URL、访问次数
@@ -96,7 +169,7 @@ function showHistory() {
         'startTime': oneTimeAgo
     }, function (historyItems) {
         historyItems.sort(function (a, b) { return b.visitCount - a.visitCount; })
-        
+
         buildPopupDom(historyItems);
     });
 

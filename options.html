@@ -40,28 +40,14 @@
 
     <p>
         <span>域名黑名单</span>
-        <textarea oninput="adjustHeight()" id="blackList" cols="60"></textarea>
+        <ul id="blackList_ul">
+            <li>
+                <span class="delete-btn" onclick="deleteItem(this)">✖</span>
+                <span class="blackList_url">https://example.com/*</span>
+            </li>
+        </ul>
     </p>
 
-
-    Favorite color:
-    <select id="color">
-        <option value="red">red</option>
-        <option value="green">green</option>
-        <option value="blue">blue</option>
-        <option value="yellow">yellow</option>
-    </select>
-
-    <label>
-        <input type="checkbox" id="like">
-        I like colors.
-    </label>
-
-    <ul>
-        <li>alkwdj </li>
-        <li>alkwdj <img src="disable.svg" width="100" alt=""></li>
-        <li>alkwdj <img src="disable.svg" width="100" alt=""></li>
-    </ul>
 
     <div id="status"></div>
     <button id="save">Save</button>

@@ -1,23 +1,30 @@
-
 function adjustHeight() {
-    let textarea = document.getElementById('blackList');
+    let textarea = document.getElementById('blackList_ul');
     textarea.style.height = 'auto'; // 重置高度，以便重新计算
 
     // 设置文本区域的高度为内容的滚动高度
     textarea.style.height = textarea.scrollHeight + 'px';
 }
 
+function deleteItem(btn) {
+    const listItem = btn.parentElement; // 获取当前 <li> 元素
+    listItem.remove(); // 删除当前项
+    adjustHeight();
+}
+
 
 // 将选项保存到 chrome.storage
 function save_options() {
-    var color = document.getElementById('color').value;
-    var likesColor = document.getElementById('like').checked;
     let lastDays = document.getElementById('lastDays').value;
     let urlLength = document.getElementById('urlLength').value;
-    let blackList = document.getElementById('blackList').value;
-    chrome.storage.sync.set({
-        favoriteColor: color,
-        likesColor: likesColor,
+    let blackList_ul = document.getElementById('blackList_ul');
+    // 获取 blackList_ul 中的所有 class 为 blackList_url 的子元素
+    let blackList = [];
+    blackList_ul.querySelectorAll('span.blackList_url').forEach(function (span) {
+        blackList.push(span.innerText);
+    });
+    console.log(blackList);
+    chrome.storage.local.set({
         lastDays: lastDays,
         urlLength: urlLength,
         blackList: blackList
@@ -31,22 +38,41 @@ function save_options() {
     });
 }
 
+function showBlackList(blackList) {
+    let blackList_ul = document.getElementById('blackList_ul');
+    blackList_ul.innerHTML = '';
+    if (!Array.isArray(blackList)) {
+        blackList = [blackList];
+    }
+    for (let i = 0; i < blackList.length; i++) {
+        let li = document.createElement('li');
+        let span_btn = document.createElement('span');
+        span_btn.classList.add('delete-btn');
+        span_btn.addEventListener('click', function () {
+            deleteItem(this);
+        });
+        span_btn.innerHTML = '✖';
+        let span_text = document.createElement('span');
+        span_text.classList.add('blackList_url');
+        span_text.appendChild(document.createTextNode(blackList[i]));
+        li.appendChild(span_btn);
+        li.appendChild(span_text);
+        blackList_ul.appendChild(li);
+    }
+}
+
 // 使用首选项恢复选择框和复选框状态 
 // 存储在 chrome.storage 中。
 function restore_options() {
-    // Use default value color = 'red' and likesColor = true.
-    chrome.storage.sync.get({
-        favoriteColor: 'red',
-        likesColor: true,
+    chrome.storage.local.get({
         lastDays: '7',
         urlLength: '12',
         blackList: ''
     }, function (items) {
-        document.getElementById('color').value = items.favoriteColor;
-        document.getElementById('like').checked = items.likesColor;
+        console.log(items)
         document.getElementById('lastDays').value = items.lastDays;
         document.getElementById('urlLength').value = items.urlLength;
-        document.getElementById('blackList').value = items.blackList;
+        showBlackList(items.blackList);
         adjustHeight();
     });
 }

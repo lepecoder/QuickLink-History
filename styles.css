@@ -5,8 +5,27 @@
 #urlLength {
     width: 40px
 }
+.delete-btn {
+    cursor: pointer;
+    color: red;
+    font-size: 18px;
+    width: 20px;
+    margin-right: 10px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
 
 li {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* li {
     position: relative;
     display: flex;
     list-style-type: disc;
@@ -21,4 +40,4 @@ li::before {
     height: 8px;
     border-radius: 50%;
     background-color: black;
-}
+} */
