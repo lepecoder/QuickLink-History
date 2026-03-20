@@ -28,6 +28,12 @@ async function loadAndCacheHistory() {
 
     historyItems.sort((a, b) => b.visitCount - a.visitCount);
 
+    // 打印每个URL和访问次数
+    console.log('[QuickLink Background] History items:');
+    historyItems.forEach((item, index) => {
+        console.log(`  ${index + 1}. ${item.url} - Visit count: ${item.visitCount}`);
+    });
+
     await chrome.storage.local.set({
         [CACHE_KEY]: historyItems,
         [CACHE_TIMESTAMP_KEY]: Date.now()

@@ -194,6 +194,12 @@ async function loadAndCacheHistory() {
 
     historyItems.sort((a, b) => b.visitCount - a.visitCount);
 
+    // 打印每个URL和访问次数
+    console.log('[QuickLink] History items:');
+    historyItems.forEach((item, index) => {
+        console.log(`  ${index + 1}. ${item.url} - Visit count: ${item.visitCount}`);
+    });
+
     // Cache to storage
     await chrome.storage.local.set({
         [CACHE_KEY]: historyItems,
@@ -215,6 +221,11 @@ async function getCachedHistory() {
     // If cache exists and not expired, return it
     if (cachedData && cacheTime && (now - cacheTime < CACHE_DURATION)) {
         console.log(`[QuickLink] Using cached data (${cachedData.length} items, age: ${((now - cacheTime) / 1000).toFixed(0)}s)`);
+        // 打印缓存的URL和访问次数
+        console.log('[QuickLink] Cached history items:');
+        cachedData.forEach((item, index) => {
+            console.log(`  ${index + 1}. ${item.url} - Visit count: ${item.visitCount}`);
+        });
         return cachedData;
     }
 
