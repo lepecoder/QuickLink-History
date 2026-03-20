@@ -10,7 +10,7 @@ function deleteItem(btn) {
 }
 
 // Save options to chrome.storage
-function save_options() {
+async function save_options() {
     const lastDays = document.getElementById('lastDays').value;
     const urlLength = document.getElementById('urlLength').value;
     const blackList_ul = document.getElementById('blackList_ul');
@@ -21,18 +21,25 @@ function save_options() {
         blackList.push(span.textContent);
     });
 
-    chrome.storage.local.set({
+    await chrome.storage.local.set({
         lastDays: lastDays,
         urlLength: urlLength,
         blackList: blackList
-    }, function() {
-        // Show success message
-        const status = document.getElementById('status');
-        status.textContent = 'Settings saved successfully!';
-        setTimeout(function() {
-            status.textContent = '';
-        }, 1500);
     });
+
+    // Trigger cache refresh in background
+    try {
+        await chrome.runtime.sendMessage({ action: 'refreshCache' });
+    } catch (e) {
+        console.log('[QuickLink] Could not refresh cache:', e);
+    }
+
+    // Show success message
+    const status = document.getElementById('status');
+    status.textContent = 'Settings saved successfully!';
+    setTimeout(function() {
+        status.textContent = '';
+    }, 1500);
 }
 
 // Display blacklist items
@@ -67,16 +74,16 @@ function showBlackList(blackList) {
 }
 
 // Restore options from chrome.storage
-function restore_options() {
-    chrome.storage.local.get({
+async function restore_options() {
+    const items = await chrome.storage.local.get({
         lastDays: '7',
         urlLength: '15',
         blackList: []
-    }, function(items) {
-        document.getElementById('lastDays').value = items.lastDays;
-        document.getElementById('urlLength').value = items.urlLength;
-        showBlackList(items.blackList);
     });
+
+    document.getElementById('lastDays').value = items.lastDays;
+    document.getElementById('urlLength').value = items.urlLength;
+    showBlackList(items.blackList);
 }
 
 // Initialize

@@ -5,13 +5,12 @@
  * - Show most visited URLs within configured time range
  * - Sort by visit count
  * - Support blacklist filtering
- * - Optimized for fast popup loading
+ * - Uses cached data from background for fast loading
  */
 
 // Global configuration
 let urlLength = 15;
 let blackList = [];
-let lastDays = 7;
 
 // Cached compiled regex patterns for blacklist
 let blackListRegexCache = [];
@@ -77,32 +76,31 @@ function parseUrl(url) {
 }
 
 // Load configuration from storage
-function loadConfig() {
-    chrome.storage.local.get({
-        lastDays: lastDays,
-        urlLength: urlLength,
+async function loadConfig() {
+    const items = await chrome.storage.local.get({
+        lastDays: 7,
+        urlLength: 15,
         blackList: []
-    }, function(items) {
-        urlLength = items.urlLength;
-        lastDays = items.lastDays;
-        blackList = items.blackList;
-
-        // Compile blacklist patterns once
-        compileBlackListPatterns();
-
-        showHistory();
     });
+    urlLength = items.urlLength;
+    blackList = items.blackList;
+
+    // Update subtitle with lastDays
+    document.getElementById('subtitle').textContent = `Last ${items.lastDays} days`;
+
+    // Compile blacklist patterns once
+    compileBlackListPatterns();
 }
 
 // Add URL to blacklist
-function addBlackList(url) {
+async function addBlackList(url) {
     blackList.push(url);
     compileBlackListPatterns();
-    chrome.storage.local.set({
-        blackList: blackList
-    }, function() {
-        showHistory();
-    });
+    await chrome.storage.local.set({ blackList: blackList });
+
+    // Refresh cache and rebuild UI
+    await chrome.runtime.sendMessage({ action: 'refreshCache' });
+    await displayHistory();
 }
 
 // Filter by blacklist (optimized with pre-compiled regex)
@@ -115,41 +113,8 @@ function filterBlackList(item) {
     return true;
 }
 
-// Create list item row (optimized)
-function addRow(url, title, count, parsedUrl, colors) {
-    const list = document.getElementById('popup-list');
-
-    // Use template literal for faster DOM creation
-    const item = document.createElement('div');
-    item.className = 'popup-item';
-    item.title = url;
-
-    item.innerHTML = `
-        <div class="popup-favicon" style="background:${colors.bg};color:${colors.text}">${parsedUrl.initial}</div>
-        <div class="popup-content">
-            <p class="popup-url" title="${url}">${url.length > 40 ? url.substring(0, 40) + '...' : url}</p>
-            <p class="popup-title" title="${title || ''}">${title || '(No title)'}</p>
-        </div>
-        <span class="popup-count">${count}</span>
-        <button class="popup-blacklist-btn" title="Add to blacklist">&#10006;</button>
-    `;
-
-    // Event listeners
-    item.addEventListener('click', function() {
-        chrome.tabs.create({ selected: true, url: url });
-    });
-
-    const blacklistBtn = item.querySelector('.popup-blacklist-btn');
-    blacklistBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        addBlackList(url);
-    });
-
-    list.appendChild(item);
-}
-
-// Build popup DOM (optimized with DocumentFragment)
-function buildPopupDom(data) {
+// Build popup DOM with cached history data
+function buildPopupDom(historyItems) {
     const list = document.getElementById('popup-list');
 
     // Clear efficiently
@@ -159,9 +124,14 @@ function buildPopupDom(data) {
 
     // Use DocumentFragment for batch insertion
     const fragment = document.createDocumentFragment();
+    let displayedCount = 0;
 
-    data.forEach(item => {
-        if (!filterBlackList(item)) return;
+    // History is already sorted by visitCount from background
+    for (let i = 0; i < historyItems.length && displayedCount < urlLength; i++) {
+        const item = historyItems[i];
+
+        // Skip blacklisted items
+        if (!filterBlackList(item)) continue;
 
         const parsedUrl = parseUrl(item.url);
         const colors = getFaviconColors(parsedUrl.hostname);
@@ -170,11 +140,14 @@ function buildPopupDom(data) {
         row.className = 'popup-item';
         row.title = item.url;
 
+        const displayUrl = item.url.length > 40 ? item.url.substring(0, 40) + '...' : item.url;
+        const displayTitle = item.title || '(No title)';
+
         row.innerHTML = `
             <div class="popup-favicon" style="background:${colors.bg};color:${colors.text}">${parsedUrl.initial}</div>
             <div class="popup-content">
-                <p class="popup-url" title="${item.url}">${item.url.length > 40 ? item.url.substring(0, 40) + '...' : item.url}</p>
-                <p class="popup-title" title="${item.title || ''}">${item.title || '(No title)'}</p>
+                <p class="popup-url" title="${item.url}">${displayUrl}</p>
+                <p class="popup-title" title="${item.title || ''}">${displayTitle}</p>
             </div>
             <span class="popup-count">${item.visitCount}</span>
             <button class="popup-blacklist-btn" title="Add to blacklist">&#10006;</button>
@@ -191,39 +164,53 @@ function buildPopupDom(data) {
         });
 
         fragment.appendChild(row);
-    });
+        displayedCount++;
+    }
 
     list.appendChild(fragment);
 }
 
-// Show browsing history (optimized)
-function showHistory() {
-    const lastTime = 1000 * 60 * 60 * 24 * lastDays;
-    const now = new Date().getTime();
-    const oneTimeAgo = now - lastTime;
-
-    // Update subtitle
-    document.getElementById('subtitle').textContent = `Last ${lastDays} days`;
-
-    // OPTIMIZATION: Use reasonable maxResults instead of 10000
-    // We only show top results, so fetch 3-4x what we need to account for blacklist filtering
-    const fetchCount = Math.min(urlLength * 5, 200);
-
-    chrome.history.search({
-        'text': '',
-        'maxResults': fetchCount,
-        'startTime': oneTimeAgo
-    }, function(historyItems) {
-        // Sort by visit count
-        historyItems.sort((a, b) => b.visitCount - a.visitCount);
-        buildPopupDom(historyItems);
-    });
+// Get history from background (cached) and display
+async function displayHistory() {
+    try {
+        const response = await chrome.runtime.sendMessage({ action: 'getHistory' });
+        if (response.error) {
+            console.error('[QuickLink] Error:', response.error);
+            // Fallback: load directly
+            await loadHistoryDirect();
+        } else {
+            buildPopupDom(response.history);
+        }
+    } catch (e) {
+        console.error('[QuickLink] Failed to get cached history:', e);
+        // Fallback: load directly
+        await loadHistoryDirect();
+    }
 }
 
-// Settings button
-document.getElementById('btn-settings').addEventListener('click', function() {
-    chrome.runtime.openOptionsPage();
-});
+// Fallback: load history directly if background is not available
+async function loadHistoryDirect() {
+    const items = await chrome.storage.local.get({ lastDays: 7 });
+    const lastTime = 1000 * 60 * 60 * 24 * items.lastDays;
+    const startTime = Date.now() - lastTime;
+
+    const historyItems = await chrome.history.search({
+        text: '',
+        maxResults: 100000,
+        startTime: startTime
+    });
+
+    historyItems.sort((a, b) => b.visitCount - a.visitCount);
+    buildPopupDom(historyItems);
+}
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', loadConfig);
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadConfig();
+    await displayHistory();
+});
+
+// Settings button
+document.getElementById('btn-settings').addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+});
