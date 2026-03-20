@@ -8,7 +8,8 @@
       "Bash(C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir \"E:/myWorks/QuickLink-History\")",
       "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh\" --project-dir \"E:/myWorks/QuickLink-History\")",
       "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh\" \"E:/myWorks/QuickLink-History/.superpowers/brainstorm/371-1773970300\" 2>/dev/null || echo \"Server stopped\")",
-      "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh\" \"E:/myWorks/QuickLink-History/.superpowers/brainstorm/371-1773970300\")"
+      "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh\" \"E:/myWorks/QuickLink-History/.superpowers/brainstorm/371-1773970300\")",
+      "Bash(cd \"E:/myWorks/QuickLink-History\" && ls -la *.js)"
     ]
   }
 }

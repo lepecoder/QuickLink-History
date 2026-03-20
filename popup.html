@@ -4,6 +4,29 @@
     <meta charset="utf-8">
     <title>QuickLink History</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .popup-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            color: #757575;
+            font-size: 14px;
+        }
+        .popup-loading .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #009688;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 
 <body class="popup-body">
@@ -14,7 +37,10 @@
         </div>
 
         <div class="popup-list" id="popup-list">
-            <!-- List items will be dynamically inserted here -->
+            <div class="popup-loading" id="loading">
+                <div class="spinner"></div>
+                <span>Loading...</span>
+            </div>
         </div>
 
         <div class="popup-footer">
