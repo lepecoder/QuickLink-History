@@ -145,14 +145,14 @@ body.popup-body {
 .popup-favicon {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
   flex-shrink: 0;
-  font-weight: 500;
-  font-size: 14px;
+  background: var(--surface);
+  object-fit: contain;
 }
 
 /* Item Content */

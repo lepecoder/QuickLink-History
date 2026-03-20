@@ -154,7 +154,6 @@ function buildPopupDom(historyItems) {
         if (!filterBlackList(item)) continue;
 
         const parsedUrl = parseUrl(item.url);
-        const colors = getFaviconColors(parsedUrl.hostname);
 
         const row = document.createElement('div');
         row.className = 'popup-item';
@@ -169,7 +168,7 @@ function buildPopupDom(historyItems) {
         const displayTitle = item.title || '(No title)';
 
         row.innerHTML = `
-            <div class="popup-favicon" style="background:${colors.bg};color:${colors.text}">${parsedUrl.initial}</div>
+            <img class="popup-favicon" src="https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}&sz=32" alt="" onerror="this.style.display='none'">
             <div class="popup-content">
                 <p class="popup-url" title="${item.url}">${displayUrl}</p>
                 <p class="popup-title" title="${item.title || ''}">${displayTitle}</p>
@@ -275,8 +274,9 @@ function filterHistory(query) {
             return urlLower.includes(lowerQuery) || titleLower.includes(lowerQuery);
         }).slice(0, urlLength);
     }
-    selectedIndex = -1;
+    selectedIndex = filteredHistoryItems.length > 0 ? 0 : -1;
     buildPopupDom(filteredHistoryItems);
+    updateSelection();
 }
 
 // Update selection visual
@@ -322,7 +322,9 @@ async function displayHistory() {
     const historyItems = await getCachedHistory();
     allHistoryItems = historyItems;
     filteredHistoryItems = historyItems.slice(0, urlLength);
+    selectedIndex = filteredHistoryItems.length > 0 ? 0 : -1;
     buildPopupDom(filteredHistoryItems);
+    updateSelection();
 }
 
 // Initialize
