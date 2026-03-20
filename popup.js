@@ -5,35 +5,74 @@
  * - Show most visited URLs within configured time range
  * - Sort by visit count
  * - Support blacklist filtering
+ * - Optimized for fast popup loading
  */
 
 // Global configuration
 let urlLength = 15;
-let blackList = [
-    "https://poe.com/ChatGPT",
-    "https://bytedance.larkoffice.com/drive/me/"
-];
+let blackList = [];
 let lastDays = 7;
 
-// Get favicon color based on domain first letter
-function getFaviconColors(url) {
-    try {
-        const hostname = new URL(url).hostname;
-        const firstChar = hostname.charAt(0).toUpperCase();
+// Cached compiled regex patterns for blacklist
+let blackListRegexCache = [];
 
-        if (firstChar >= 'A' && firstChar <= 'E') {
-            return { bg: '#e3f2fd', text: '#1976d2' };
-        } else if (firstChar >= 'F' && firstChar <= 'J') {
-            return { bg: '#fff3e0', text: '#f57c00' };
-        } else if (firstChar >= 'K' && firstChar <= 'O') {
-            return { bg: '#e8f5e9', text: '#388e3c' };
-        } else if (firstChar >= 'P' && firstChar <= 'T') {
-            return { bg: '#fce4ec', text: '#c2185b' };
-        } else {
-            return { bg: '#f3e5f5', text: '#7b1fa2' };
+// Compile blacklist patterns once
+function compileBlackListPatterns() {
+    blackListRegexCache = blackList.map(rule => {
+        let matchPattern = rule.trim();
+        if (!matchPattern.startsWith("*://") && !matchPattern.startsWith("http")) {
+            return null;
         }
+
+        function escapeRegexChars(str) {
+            return str.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
+        }
+
+        let regexPattern = matchPattern
+            .replace(/\*/g, ".*")
+            .split("://")
+            .map(escapeRegexChars)
+            .join("://");
+
+        if (regexPattern.startsWith("\\*:\\/\\/")) {
+            regexPattern = "https?:\\/\\/" + regexPattern.slice(8);
+        }
+
+        try {
+            return new RegExp("^" + regexPattern + "$");
+        } catch (e) {
+            return null;
+        }
+    }).filter(r => r !== null);
+}
+
+// Get favicon color based on domain first letter
+function getFaviconColors(hostname) {
+    const firstChar = hostname.charAt(0).toUpperCase();
+
+    if (firstChar >= 'A' && firstChar <= 'E') {
+        return { bg: '#e3f2fd', text: '#1976d2' };
+    } else if (firstChar >= 'F' && firstChar <= 'J') {
+        return { bg: '#fff3e0', text: '#f57c00' };
+    } else if (firstChar >= 'K' && firstChar <= 'O') {
+        return { bg: '#e8f5e9', text: '#388e3c' };
+    } else if (firstChar >= 'P' && firstChar <= 'T') {
+        return { bg: '#fce4ec', text: '#c2185b' };
+    } else {
+        return { bg: '#f3e5f5', text: '#7b1fa2' };
+    }
+}
+
+// Parse URL and extract hostname (optimized)
+function parseUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        return {
+            hostname: urlObj.hostname,
+            initial: urlObj.hostname.charAt(0).toUpperCase()
+        };
     } catch (e) {
-        return { bg: '#e0e0e0', text: '#757575' };
+        return { hostname: '', initial: '?' };
     }
 }
 
@@ -42,11 +81,15 @@ function loadConfig() {
     chrome.storage.local.get({
         lastDays: lastDays,
         urlLength: urlLength,
-        blackList: blackList
+        blackList: []
     }, function(items) {
         urlLength = items.urlLength;
         lastDays = items.lastDays;
         blackList = items.blackList;
+
+        // Compile blacklist patterns once
+        compileBlackListPatterns();
+
         showHistory();
     });
 }
@@ -54,6 +97,7 @@ function loadConfig() {
 // Add URL to blacklist
 function addBlackList(url) {
     blackList.push(url);
+    compileBlackListPatterns();
     chrome.storage.local.set({
         blackList: blackList
     }, function() {
@@ -61,139 +105,98 @@ function addBlackList(url) {
     });
 }
 
-// Create list item row
-function addRow(url, title, count) {
-    const list = document.getElementById('popup-list');
-    const colors = getFaviconColors(url);
-
-    // Get first letter for favicon
-    let initial = '?';
-    try {
-        const hostname = new URL(url).hostname;
-        initial = hostname.charAt(0).toUpperCase();
-    } catch (e) {
-        initial = '?';
-    }
-
-    // Create list item
-    const item = document.createElement('div');
-    item.className = 'popup-item';
-    item.title = url;
-
-    // Favicon
-    const favicon = document.createElement('div');
-    favicon.className = 'popup-favicon';
-    favicon.style.background = colors.bg;
-    favicon.style.color = colors.text;
-    favicon.textContent = initial;
-
-    // Content container
-    const content = document.createElement('div');
-    content.className = 'popup-content';
-
-    // URL
-    const urlEl = document.createElement('p');
-    urlEl.className = 'popup-url';
-    urlEl.textContent = url.length > 40 ? url.substring(0, 40) + '...' : url;
-    urlEl.title = url;
-
-    // Title
-    const titleEl = document.createElement('p');
-    titleEl.className = 'popup-title';
-    titleEl.textContent = title || '(No title)';
-    titleEl.title = title || '';
-
-    content.appendChild(urlEl);
-    content.appendChild(titleEl);
-
-    // Visit count badge
-    const countBadge = document.createElement('span');
-    countBadge.className = 'popup-count';
-    countBadge.textContent = count;
-
-    // Blacklist button
-    const blacklistBtn = document.createElement('button');
-    blacklistBtn.className = 'popup-blacklist-btn';
-    blacklistBtn.innerHTML = '&#10006;';
-    blacklistBtn.title = 'Add to blacklist';
-    blacklistBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        addBlackList(url);
-    });
-
-    // Click to open
-    item.addEventListener('click', function() {
-        chrome.tabs.create({ selected: true, url: url });
-    });
-
-    // Assemble
-    item.appendChild(favicon);
-    item.appendChild(content);
-    item.appendChild(countBadge);
-    item.appendChild(blacklistBtn);
-
-    list.appendChild(item);
-}
-
-// Clear list content
-function clearTable() {
-    const list = document.getElementById('popup-list');
-    list.innerHTML = '';
-}
-
-/**
- * Check if URL matches @match pattern
- * @param {string} rule - @match pattern string
- * @param {string} url - URL to check
- * @returns {boolean} Whether it matches
- */
-function matchRule(rule, url) {
-    let matchPattern = rule.trim();
-    if (!matchPattern.startsWith("*://") && !matchPattern.startsWith("http")) {
-        throw new Error("Invalid @match rule: " + matchPattern);
-    }
-
-    function escapeRegexChars(str) {
-        return str.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
-    }
-
-    let regexPattern = matchPattern
-        .replace(/\*/g, ".*")
-        .split("://")
-        .map(escapeRegexChars)
-        .join("://");
-
-    if (regexPattern.startsWith("\\*:\\/\\/")) {
-        regexPattern = "https?:\\/\\/" + regexPattern.slice(8);
-    }
-
-    regexPattern = "^" + regexPattern + "$";
-
-    const regex = new RegExp(regexPattern);
-    return regex.test(url);
-}
-
-// Filter by blacklist
+// Filter by blacklist (optimized with pre-compiled regex)
 function filterBlackList(item) {
-    for (let i = 0, ie = blackList.length; i < ie; i++) {
-        if (matchRule(blackList[i], item.url)) {
+    for (let i = 0; i < blackListRegexCache.length; i++) {
+        if (blackListRegexCache[i].test(item.url)) {
             return false;
         }
     }
     return true;
 }
 
-// Build popup DOM
-function buildPopupDom(data) {
-    data = data.filter(item => filterBlackList(item));
-    clearTable();
+// Create list item row (optimized)
+function addRow(url, title, count, parsedUrl, colors) {
+    const list = document.getElementById('popup-list');
 
-    for (let i = 0, ie = data.length; i < ie; i++) {
-        addRow(data[i].url, data[i].title, data[i].visitCount);
-    }
+    // Use template literal for faster DOM creation
+    const item = document.createElement('div');
+    item.className = 'popup-item';
+    item.title = url;
+
+    item.innerHTML = `
+        <div class="popup-favicon" style="background:${colors.bg};color:${colors.text}">${parsedUrl.initial}</div>
+        <div class="popup-content">
+            <p class="popup-url" title="${url}">${url.length > 40 ? url.substring(0, 40) + '...' : url}</p>
+            <p class="popup-title" title="${title || ''}">${title || '(No title)'}</p>
+        </div>
+        <span class="popup-count">${count}</span>
+        <button class="popup-blacklist-btn" title="Add to blacklist">&#10006;</button>
+    `;
+
+    // Event listeners
+    item.addEventListener('click', function() {
+        chrome.tabs.create({ selected: true, url: url });
+    });
+
+    const blacklistBtn = item.querySelector('.popup-blacklist-btn');
+    blacklistBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        addBlackList(url);
+    });
+
+    list.appendChild(item);
 }
 
-// Show browsing history
+// Build popup DOM (optimized with DocumentFragment)
+function buildPopupDom(data) {
+    const list = document.getElementById('popup-list');
+
+    // Clear efficiently
+    while (list.firstChild) {
+        list.removeChild(list.firstChild);
+    }
+
+    // Use DocumentFragment for batch insertion
+    const fragment = document.createDocumentFragment();
+
+    data.forEach(item => {
+        if (!filterBlackList(item)) return;
+
+        const parsedUrl = parseUrl(item.url);
+        const colors = getFaviconColors(parsedUrl.hostname);
+
+        const row = document.createElement('div');
+        row.className = 'popup-item';
+        row.title = item.url;
+
+        row.innerHTML = `
+            <div class="popup-favicon" style="background:${colors.bg};color:${colors.text}">${parsedUrl.initial}</div>
+            <div class="popup-content">
+                <p class="popup-url" title="${item.url}">${item.url.length > 40 ? item.url.substring(0, 40) + '...' : item.url}</p>
+                <p class="popup-title" title="${item.title || ''}">${item.title || '(No title)'}</p>
+            </div>
+            <span class="popup-count">${item.visitCount}</span>
+            <button class="popup-blacklist-btn" title="Add to blacklist">&#10006;</button>
+        `;
+
+        row.addEventListener('click', function() {
+            chrome.tabs.create({ selected: true, url: item.url });
+        });
+
+        const blacklistBtn = row.querySelector('.popup-blacklist-btn');
+        blacklistBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            addBlackList(item.url);
+        });
+
+        fragment.appendChild(row);
+    });
+
+    list.appendChild(fragment);
+}
+
+// Show browsing history (optimized)
 function showHistory() {
     const lastTime = 1000 * 60 * 60 * 24 * lastDays;
     const now = new Date().getTime();
@@ -202,13 +205,18 @@ function showHistory() {
     // Update subtitle
     document.getElementById('subtitle').textContent = `Last ${lastDays} days`;
 
+    // OPTIMIZATION: Use reasonable maxResults instead of 10000
+    // We only show top results, so fetch 3-4x what we need to account for blacklist filtering
+    const fetchCount = Math.min(urlLength * 5, 200);
+
     chrome.history.search({
         'text': '',
-        'maxResults': 10000,
+        'maxResults': fetchCount,
         'startTime': oneTimeAgo
     }, function(historyItems) {
-        historyItems.sort(function(a, b) { return b.visitCount - a.visitCount; });
-        buildPopupDom(historyItems.slice(0, urlLength));
+        // Sort by visit count
+        historyItems.sort((a, b) => b.visitCount - a.visitCount);
+        buildPopupDom(historyItems);
     });
 }
 
