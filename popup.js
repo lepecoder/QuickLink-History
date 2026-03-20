@@ -223,12 +223,13 @@ async function loadHistoryDirect() {
 // Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
     const totalStart = performance.now();
+
+    // Settings button
+    document.getElementById('btn-settings').addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
+    });
+
     await loadConfig();
     await displayHistory();
     console.log(`[QuickLink Popup] Total load time: ${(performance.now() - totalStart).toFixed(1)}ms`);
-});
-
-// Settings button
-document.getElementById('btn-settings').addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
 });
