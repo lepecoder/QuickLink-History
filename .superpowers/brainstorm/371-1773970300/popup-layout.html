@@ -1,0 +1,92 @@
+<h2>Popup Layout</h2>
+<p class="subtitle">Material Design 风格下，popup 弹窗应该采用什么布局？</p>
+
+<div class="cards">
+  <div class="card" data-choice="list" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: #fafafa; padding: 16px; border-radius: 8px; width: 320px;">
+        <div style="background: white; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+          <div style="background: #1976d2; color: white; padding: 16px;">
+            <div style="font-size: 16px; font-weight: 500;">Frequently Visited</div>
+            <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Last 7 days</div>
+          </div>
+          <div style="padding: 8px 0;">
+            <div style="display: flex; align-items: center; padding: 10px 16px; cursor: pointer;">
+              <div style="width: 36px; height: 36px; background: #e3f2fd; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center; color: #1976d2; font-weight: 500;">G</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">github.com/project-repo</div>
+                <div style="font-size: 12px; color: #757575; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Project Title</div>
+              </div>
+              <div style="font-size: 12px; color: white; background: #1976d2; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">42</div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 10px 16px; background: #f5f5f5;">
+              <div style="width: 36px; height: 36px; background: #fff3e0; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center; color: #f57c00; font-weight: 500;">S</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">stackoverflow.com/questions</div>
+                <div style="font-size: 12px; color: #757575; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Question Title</div>
+              </div>
+              <div style="font-size: 12px; color: white; background: #1976d2; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">38</div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 10px 16px;">
+              <div style="width: 36px; height: 36px; background: #e8f5e9; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center; color: #388e3c; font-weight: 500;">D</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">docs.google.com/document</div>
+                <div style="font-size: 12px; color: #757575; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Document Name</div>
+              </div>
+              <div style="font-size: 12px; color: white; background: #1976d2; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">25</div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid #e0e0e0; padding: 8px;">
+            <button style="width: 100%; padding: 10px; background: transparent; border: none; color: #1976d2; font-weight: 500; cursor: pointer; font-size: 14px;">Open Settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>List View (Recommended)</h3>
+      <p>经典列表布局，每行显示 favicon、URL、标题和访问次数。紧凑高效，适合快速浏览。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="cards" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: #fafafa; padding: 16px; border-radius: 8px; width: 320px;">
+        <div style="background: white; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+          <div style="background: #1976d2; color: white; padding: 16px;">
+            <div style="font-size: 16px; font-weight: 500;">Frequently Visited</div>
+            <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Last 7 days</div>
+          </div>
+          <div style="padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: #f5f5f5; border-radius: 8px; padding: 12px; cursor: pointer;">
+              <div style="width: 32px; height: 32px; background: #e3f2fd; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1976d2; font-weight: 500; margin-bottom: 8px;">G</div>
+              <div style="font-size: 12px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">github.com</div>
+              <div style="font-size: 11px; color: #757575; margin-top: 2px;">42 visits</div>
+            </div>
+            <div style="background: #f5f5f5; border-radius: 8px; padding: 12px; cursor: pointer;">
+              <div style="width: 32px; height: 32px; background: #fff3e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #f57c00; font-weight: 500; margin-bottom: 8px;">S</div>
+              <div style="font-size: 12px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">stackoverflow</div>
+              <div style="font-size: 11px; color: #757575; margin-top: 2px;">38 visits</div>
+            </div>
+            <div style="background: #f5f5f5; border-radius: 8px; padding: 12px; cursor: pointer;">
+              <div style="width: 32px; height: 32px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #388e3c; font-weight: 500; margin-bottom: 8px;">D</div>
+              <div style="font-size: 12px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">docs.google</div>
+              <div style="font-size: 11px; color: #757575; margin-top: 2px;">25 visits</div>
+            </div>
+            <div style="background: #f5f5f5; border-radius: 8px; padding: 12px; cursor: pointer;">
+              <div style="width: 32px; height: 32px; background: #fce4ec; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #c2185b; font-weight: 500; margin-bottom: 8px;">Y</div>
+              <div style="font-size: 12px; color: #333; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">youtube.com</div>
+              <div style="font-size: 11px; color: #757575; margin-top: 2px;">20 visits</div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid #e0e0e0; padding: 8px;">
+            <button style="width: 100%; padding: 10px; background: transparent; border: none; color: #1976d2; font-weight: 500; cursor: pointer; font-size: 14px;">Open Settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Card Grid</h3>
+      <p>网格卡片布局，每个站点一个卡片。更美观，但显示内容较少。</p>
+    </div>
+  </div>
+</div>

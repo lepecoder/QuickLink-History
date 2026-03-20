@@ -77,6 +77,9 @@ function parseUrl(url) {
 
 // Load configuration from storage
 async function loadConfig() {
+    console.log('[QuickLink Popup] Loading config...');
+    const startTime = performance.now();
+
     const items = await chrome.storage.local.get({
         lastDays: 7,
         urlLength: 15,
@@ -90,6 +93,8 @@ async function loadConfig() {
 
     // Compile blacklist patterns once
     compileBlackListPatterns();
+
+    console.log(`[QuickLink Popup] Config loaded in ${(performance.now() - startTime).toFixed(1)}ms`);
 }
 
 // Add URL to blacklist
@@ -115,6 +120,9 @@ function filterBlackList(item) {
 
 // Build popup DOM with cached history data
 function buildPopupDom(historyItems) {
+    console.log(`[QuickLink Popup] Building DOM with ${historyItems.length} items...`);
+    const buildStart = performance.now();
+
     const list = document.getElementById('popup-list');
 
     // Clear efficiently
@@ -168,21 +176,28 @@ function buildPopupDom(historyItems) {
     }
 
     list.appendChild(fragment);
+
+    console.log(`[QuickLink Popup] DOM built in ${(performance.now() - buildStart).toFixed(1)}ms, displayed ${displayedCount} items`);
 }
 
 // Get history from background (cached) and display
 async function displayHistory() {
+    console.log('[QuickLink Popup] Requesting history from background...');
+    const requestStart = performance.now();
+
     try {
         const response = await chrome.runtime.sendMessage({ action: 'getHistory' });
         if (response.error) {
-            console.error('[QuickLink] Error:', response.error);
+            console.error('[QuickLink Popup] Error:', response.error);
             // Fallback: load directly
             await loadHistoryDirect();
         } else {
+            const loadTime = performance.now() - requestStart;
+            console.log(`[QuickLink Popup] Got ${response.history.length} items from cache in ${loadTime.toFixed(1)}ms`);
             buildPopupDom(response.history);
         }
     } catch (e) {
-        console.error('[QuickLink] Failed to get cached history:', e);
+        console.error('[QuickLink Popup] Failed to get cached history:', e);
         // Fallback: load directly
         await loadHistoryDirect();
     }
@@ -190,6 +205,7 @@ async function displayHistory() {
 
 // Fallback: load history directly if background is not available
 async function loadHistoryDirect() {
+    console.log('[QuickLink Popup] Loading history directly (fallback)...');
     const items = await chrome.storage.local.get({ lastDays: 7 });
     const lastTime = 1000 * 60 * 60 * 24 * items.lastDays;
     const startTime = Date.now() - lastTime;
@@ -206,8 +222,10 @@ async function loadHistoryDirect() {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
+    const totalStart = performance.now();
     await loadConfig();
     await displayHistory();
+    console.log(`[QuickLink Popup] Total load time: ${(performance.now() - totalStart).toFixed(1)}ms`);
 });
 
 // Settings button

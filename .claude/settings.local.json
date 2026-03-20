@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python - <<'PY'\nfrom pathlib import Path\nfrom html.parser import HTMLParser\nfiles = [Path\\(r'E:/myWorks/QuickLink-History/popup.html'\\), Path\\(r'E:/myWorks/QuickLink-History/options.html'\\)]\nclass P\\(HTMLParser\\):\n    pass\nfor f in files:\n    P\\(\\).feed\\(f.read_text\\(encoding='utf-8'\\)\\)\n    print\\(f'{f.name}: OK'\\)\nPY)",
+      "Bash(node --check \"E:/myWorks/QuickLink-History/popup.js\" && node --check \"E:/myWorks/QuickLink-History/options.js\")",
+      "Bash(git diff:*)",
+      "Bash(node --check \"E:/myWorks/QuickLink-History/popup.js\")",
+      "Bash(C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir \"E:/myWorks/QuickLink-History\")",
+      "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh\" --project-dir \"E:/myWorks/QuickLink-History\")",
+      "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh\" \"E:/myWorks/QuickLink-History/.superpowers/brainstorm/371-1773970300\" 2>/dev/null || echo \"Server stopped\")",
+      "Bash(\"C:/Users/xiaopeng.lixp/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh\" \"E:/myWorks/QuickLink-History/.superpowers/brainstorm/371-1773970300\")"
+    ]
+  }
+}
