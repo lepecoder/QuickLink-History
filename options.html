@@ -1,59 +1,64 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
-    <title>QuickLink History Options</title>
-    <link rel="stylesheet" href="./styles.css">
+    <title>QuickLink History Settings</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
+<body class="options-body">
+    <div class="options-container">
+        <div class="options-header">
+            <h1>Settings</h1>
+            <p class="subtitle">Customize your history display</p>
+        </div>
 
+        <div class="options-section">
+            <h2 class="options-section-header">
+                <span>📊</span> Display Settings
+            </h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="lastDays">Time Range</label>
+                    <select id="lastDays" class="form-control">
+                        <option value="1">1 day</option>
+                        <option value="2">2 days</option>
+                        <option value="3">3 days</option>
+                        <option value="4">4 days</option>
+                        <option value="5">5 days</option>
+                        <option value="6">6 days</option>
+                        <option value="7" selected>7 days</option>
+                        <option value="8">8 days</option>
+                        <option value="9">9 days</option>
+                        <option value="10">10 days</option>
+                        <option value="11">11 days</option>
+                        <option value="12">12 days</option>
+                        <option value="13">13 days</option>
+                        <option value="14">14 days</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="urlLength">Results Count</label>
+                    <input type="number" id="urlLength" class="form-control" min="1" max="99" value="15">
+                </div>
+            </div>
+        </div>
 
+        <div class="options-section">
+            <h2 class="options-section-header">
+                <span>🚫</span> Blacklist
+            </h2>
+            <div class="blacklist-container" id="blackList_ul">
+                <!-- Blacklist items will be dynamically inserted here -->
+            </div>
+        </div>
 
-<body>
-
-    <p>
-        <span>统计最近</span>
-        <select id="lastDays">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7" selected="true">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-            <option value="11">11</option>
-            <option value="12">12</option>
-            <option value="13">13</option>
-            <option value="14">14</option>
-        </select>
-        <span>天的历史记录</span>
-    </p>
-    <p>
-        显示最近
-        <input type="number" min="1" max="99" id="urlLength">
-        条历史记录
-    </p>
-
-    <p>
-        <span>域名黑名单</span>
-        <ul id="blackList_ul">
-            <li>
-                <span class="delete-btn" onclick="deleteItem(this)">✖</span>
-                <span class="blackList_url">https://example.com/*</span>
-            </li>
-        </ul>
-    </p>
-
-
-    <div id="status"></div>
-    <button id="save">Save</button>
+        <div class="options-section">
+            <button id="save" class="btn-save">Save Settings</button>
+            <div id="status"></div>
+        </div>
+    </div>
 
     <script src="options.js"></script>
-
 </body>
-
 </html>

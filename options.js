@@ -1,82 +1,84 @@
-function adjustHeight() {
-    let textarea = document.getElementById('blackList_ul');
-    textarea.style.height = 'auto'; // 重置高度，以便重新计算
+/**
+ * QuickLink History Options Page
+ * Handles settings save/restore and blacklist management
+ */
 
-    // 设置文本区域的高度为内容的滚动高度
-    textarea.style.height = textarea.scrollHeight + 'px';
-}
-
+// Delete blacklist item
 function deleteItem(btn) {
-    const listItem = btn.parentElement; // 获取当前 <li> 元素
-    listItem.remove(); // 删除当前项
-    adjustHeight();
+    const listItem = btn.parentElement;
+    listItem.remove();
 }
 
-
-// 将选项保存到 chrome.storage
+// Save options to chrome.storage
 function save_options() {
-    let lastDays = document.getElementById('lastDays').value;
-    let urlLength = document.getElementById('urlLength').value;
-    let blackList_ul = document.getElementById('blackList_ul');
-    // 获取 blackList_ul 中的所有 class 为 blackList_url 的子元素
-    let blackList = [];
-    blackList_ul.querySelectorAll('span.blackList_url').forEach(function (span) {
-        blackList.push(span.innerText);
+    const lastDays = document.getElementById('lastDays').value;
+    const urlLength = document.getElementById('urlLength').value;
+    const blackList_ul = document.getElementById('blackList_ul');
+
+    // Get all blacklist URLs
+    const blackList = [];
+    blackList_ul.querySelectorAll('.blacklist-url').forEach(function(span) {
+        blackList.push(span.textContent);
     });
-    console.log(blackList);
+
     chrome.storage.local.set({
         lastDays: lastDays,
         urlLength: urlLength,
         blackList: blackList
-    }, function () {
-        // Update status to let user know options were saved.
-        var status = document.getElementById('status');
-        status.textContent = 'Options saved.';
-        setTimeout(function () {
+    }, function() {
+        // Show success message
+        const status = document.getElementById('status');
+        status.textContent = 'Settings saved successfully!';
+        setTimeout(function() {
             status.textContent = '';
-        }, 750);
+        }, 1500);
     });
 }
 
+// Display blacklist items
 function showBlackList(blackList) {
-    let blackList_ul = document.getElementById('blackList_ul');
+    const blackList_ul = document.getElementById('blackList_ul');
     blackList_ul.innerHTML = '';
-    if (!Array.isArray(blackList)) {
-        blackList = [blackList];
+
+    if (!Array.isArray(blackList) || blackList.length === 0) {
+        return;
     }
+
     for (let i = 0; i < blackList.length; i++) {
-        let li = document.createElement('li');
-        let span_btn = document.createElement('span');
-        span_btn.classList.add('delete-btn');
-        span_btn.addEventListener('click', function () {
+        const item = document.createElement('div');
+        item.className = 'blacklist-item';
+
+        const url = document.createElement('span');
+        url.className = 'blacklist-url';
+        url.appendChild(document.createTextNode(blackList[i]));
+
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'blacklist-delete';
+        deleteBtn.innerHTML = '&#10006;';
+        deleteBtn.title = 'Remove';
+        deleteBtn.addEventListener('click', function() {
             deleteItem(this);
         });
-        span_btn.innerHTML = '✖';
-        let span_text = document.createElement('span');
-        span_text.classList.add('blackList_url');
-        span_text.appendChild(document.createTextNode(blackList[i]));
-        li.appendChild(span_btn);
-        li.appendChild(span_text);
-        blackList_ul.appendChild(li);
+
+        item.appendChild(url);
+        item.appendChild(deleteBtn);
+        blackList_ul.appendChild(item);
     }
 }
 
-// 使用首选项恢复选择框和复选框状态 
-// 存储在 chrome.storage 中。
+// Restore options from chrome.storage
 function restore_options() {
     chrome.storage.local.get({
         lastDays: '7',
-        urlLength: '12',
-        blackList: ''
-    }, function (items) {
-        console.log(items)
+        urlLength: '15',
+        blackList: []
+    }, function(items) {
         document.getElementById('lastDays').value = items.lastDays;
         document.getElementById('urlLength').value = items.urlLength;
         showBlackList(items.blackList);
-        adjustHeight();
     });
 }
+
+// Initialize
 document.addEventListener('DOMContentLoaded', restore_options);
-document.addEventListener('DOMContentLoaded', adjustHeight);
 document.getElementById('save').addEventListener('click', save_options);
-document.getElementById('blackList').addEventListener('input', adjustHeight);
