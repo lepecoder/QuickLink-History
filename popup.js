@@ -8,6 +8,11 @@ let urlLength = 15;
 let blackList = [];
 let lastDays = 7;
 
+// Global state
+let allHistoryItems = [];
+let filteredHistoryItems = [];
+let selectedIndex = -1;
+
 // Cache keys
 const CACHE_KEY = 'historyCache';
 const CACHE_TIMESTAMP_KEY = 'historyCacheTimestamp';
@@ -131,6 +136,15 @@ function buildPopupDom(historyItems) {
         list.removeChild(list.firstChild);
     }
 
+    if (historyItems.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'popup-item';
+        noResults.style.cursor = 'default';
+        noResults.innerHTML = '<span style="color: var(--text-secondary);">No results found</span>';
+        list.appendChild(noResults);
+        return;
+    }
+
     const fragment = document.createDocumentFragment();
     let displayedCount = 0;
 
@@ -144,7 +158,12 @@ function buildPopupDom(historyItems) {
 
         const row = document.createElement('div');
         row.className = 'popup-item';
+        if (i === selectedIndex) {
+            row.classList.add('selected');
+        }
         row.title = item.url;
+        row.dataset.index = displayedCount;
+        row.dataset.url = item.url;
 
         const displayUrl = item.url.length > 40 ? item.url.substring(0, 40) + '...' : item.url;
         const displayTitle = item.title || '(No title)';
@@ -160,7 +179,12 @@ function buildPopupDom(historyItems) {
         `;
 
         row.addEventListener('click', function() {
-            chrome.tabs.create({ selected: true, url: item.url });
+            openUrl(item.url);
+        });
+
+        row.addEventListener('mouseenter', function() {
+            selectedIndex = displayedCount;
+            updateSelection();
         });
 
         const blacklistBtn = row.querySelector('.popup-blacklist-btn');
@@ -176,6 +200,11 @@ function buildPopupDom(historyItems) {
     list.appendChild(fragment);
 
     console.log(`[QuickLink] DOM built in ${(performance.now() - buildStart).toFixed(1)}ms, displayed ${displayedCount} items`);
+}
+
+// Open URL
+function openUrl(url) {
+    chrome.tabs.create({ selected: true, url: url });
 }
 
 // Load history and cache it
@@ -234,10 +263,66 @@ async function getCachedHistory() {
     return await loadAndCacheHistory();
 }
 
+// Filter history by search query
+function filterHistory(query) {
+    if (!query || query.trim() === '') {
+        filteredHistoryItems = allHistoryItems.slice(0, urlLength);
+    } else {
+        const lowerQuery = query.toLowerCase();
+        filteredHistoryItems = allHistoryItems.filter(item => {
+            const urlLower = item.url.toLowerCase();
+            const titleLower = (item.title || '').toLowerCase();
+            return urlLower.includes(lowerQuery) || titleLower.includes(lowerQuery);
+        }).slice(0, urlLength);
+    }
+    selectedIndex = -1;
+    buildPopupDom(filteredHistoryItems);
+}
+
+// Update selection visual
+function updateSelection() {
+    const items = document.querySelectorAll('.popup-item');
+    items.forEach((item, index) => {
+        if (index === selectedIndex) {
+            item.classList.add('selected');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+// Handle keyboard navigation
+function handleKeyDown(e) {
+    const visibleItems = document.querySelectorAll('.popup-item');
+    const itemCount = visibleItems.length;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, itemCount - 1);
+        updateSelection();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection();
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = visibleItems[selectedIndex];
+        if (selectedItem && selectedItem.dataset.url) {
+            openUrl(selectedItem.dataset.url);
+        }
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        window.close();
+    }
+}
+
 // Display history
 async function displayHistory() {
     const historyItems = await getCachedHistory();
-    buildPopupDom(historyItems);
+    allHistoryItems = historyItems;
+    filteredHistoryItems = historyItems.slice(0, urlLength);
+    buildPopupDom(filteredHistoryItems);
 }
 
 // Initialize
@@ -249,6 +334,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-settings').addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
     });
+
+    // Search input
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', (e) => {
+        filterHistory(e.target.value);
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Auto focus search input
+    searchInput.focus();
 
     await loadConfig();
     await displayHistory();
