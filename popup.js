@@ -1,16 +1,17 @@
 /**
  * QuickLink History - Popup Script
- * Description: Display frequently visited pages from browsing history
- * Features:
- * - Show most visited URLs within configured time range
- * - Sort by visit count
- * - Support blacklist filtering
- * - Uses cached data from background for fast loading
+ * 直接从 storage 读取缓存，不依赖 background 消息传递
  */
 
 // Global configuration
 let urlLength = 15;
 let blackList = [];
+let lastDays = 7;
+
+// Cache keys
+const CACHE_KEY = 'historyCache';
+const CACHE_TIMESTAMP_KEY = 'historyCacheTimestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Cached compiled regex patterns for blacklist
 let blackListRegexCache = [];
@@ -18,6 +19,7 @@ let blackListRegexCache = [];
 // Compile blacklist patterns once
 function compileBlackListPatterns() {
     blackListRegexCache = blackList.map(rule => {
+        if (!rule) return null;
         let matchPattern = rule.trim();
         if (!matchPattern.startsWith("*://") && !matchPattern.startsWith("http")) {
             return null;
@@ -62,7 +64,7 @@ function getFaviconColors(hostname) {
     }
 }
 
-// Parse URL and extract hostname (optimized)
+// Parse URL and extract hostname
 function parseUrl(url) {
     try {
         const urlObj = new URL(url);
@@ -77,7 +79,7 @@ function parseUrl(url) {
 
 // Load configuration from storage
 async function loadConfig() {
-    console.log('[QuickLink Popup] Loading config...');
+    console.log('[QuickLink] Loading config...');
     const startTime = performance.now();
 
     const items = await chrome.storage.local.get({
@@ -85,16 +87,15 @@ async function loadConfig() {
         urlLength: 15,
         blackList: []
     });
+
     urlLength = items.urlLength;
+    lastDays = items.lastDays;
     blackList = items.blackList;
 
-    // Update subtitle with lastDays
-    document.getElementById('subtitle').textContent = `Last ${items.lastDays} days`;
-
-    // Compile blacklist patterns once
+    document.getElementById('subtitle').textContent = `Last ${lastDays} days`;
     compileBlackListPatterns();
 
-    console.log(`[QuickLink Popup] Config loaded in ${(performance.now() - startTime).toFixed(1)}ms`);
+    console.log(`[QuickLink] Config loaded in ${(performance.now() - startTime).toFixed(1)}ms`);
 }
 
 // Add URL to blacklist
@@ -103,12 +104,12 @@ async function addBlackList(url) {
     compileBlackListPatterns();
     await chrome.storage.local.set({ blackList: blackList });
 
-    // Refresh cache and rebuild UI
-    await chrome.runtime.sendMessage({ action: 'refreshCache' });
+    // Refresh cache
+    await loadAndCacheHistory();
     await displayHistory();
 }
 
-// Filter by blacklist (optimized with pre-compiled regex)
+// Filter by blacklist
 function filterBlackList(item) {
     for (let i = 0; i < blackListRegexCache.length; i++) {
         if (blackListRegexCache[i].test(item.url)) {
@@ -118,27 +119,24 @@ function filterBlackList(item) {
     return true;
 }
 
-// Build popup DOM with cached history data
+// Build popup DOM
 function buildPopupDom(historyItems) {
-    console.log(`[QuickLink Popup] Building DOM with ${historyItems.length} items...`);
+    console.log(`[QuickLink] Building DOM with ${historyItems.length} items...`);
     const buildStart = performance.now();
 
     const list = document.getElementById('popup-list');
 
-    // Clear efficiently
+    // Clear
     while (list.firstChild) {
         list.removeChild(list.firstChild);
     }
 
-    // Use DocumentFragment for batch insertion
     const fragment = document.createDocumentFragment();
     let displayedCount = 0;
 
-    // History is already sorted by visitCount from background
     for (let i = 0; i < historyItems.length && displayedCount < urlLength; i++) {
         const item = historyItems[i];
 
-        // Skip blacklisted items
         if (!filterBlackList(item)) continue;
 
         const parsedUrl = parseUrl(item.url);
@@ -177,37 +175,15 @@ function buildPopupDom(historyItems) {
 
     list.appendChild(fragment);
 
-    console.log(`[QuickLink Popup] DOM built in ${(performance.now() - buildStart).toFixed(1)}ms, displayed ${displayedCount} items`);
+    console.log(`[QuickLink] DOM built in ${(performance.now() - buildStart).toFixed(1)}ms, displayed ${displayedCount} items`);
 }
 
-// Get history from background (cached) and display
-async function displayHistory() {
-    console.log('[QuickLink Popup] Requesting history from background...');
-    const requestStart = performance.now();
+// Load history and cache it
+async function loadAndCacheHistory() {
+    console.log('[QuickLink] Loading history from API...');
+    const loadStart = performance.now();
 
-    try {
-        const response = await chrome.runtime.sendMessage({ action: 'getHistory' });
-        if (response.error) {
-            console.error('[QuickLink Popup] Error:', response.error);
-            // Fallback: load directly
-            await loadHistoryDirect();
-        } else {
-            const loadTime = performance.now() - requestStart;
-            console.log(`[QuickLink Popup] Got ${response.history.length} items from cache in ${loadTime.toFixed(1)}ms`);
-            buildPopupDom(response.history);
-        }
-    } catch (e) {
-        console.error('[QuickLink Popup] Failed to get cached history:', e);
-        // Fallback: load directly
-        await loadHistoryDirect();
-    }
-}
-
-// Fallback: load history directly if background is not available
-async function loadHistoryDirect() {
-    console.log('[QuickLink Popup] Loading history directly (fallback)...');
-    const items = await chrome.storage.local.get({ lastDays: 7 });
-    const lastTime = 1000 * 60 * 60 * 24 * items.lastDays;
+    const lastTime = 1000 * 60 * 60 * 24 * lastDays;
     const startTime = Date.now() - lastTime;
 
     const historyItems = await chrome.history.search({
@@ -217,12 +193,46 @@ async function loadHistoryDirect() {
     });
 
     historyItems.sort((a, b) => b.visitCount - a.visitCount);
+
+    // Cache to storage
+    await chrome.storage.local.set({
+        [CACHE_KEY]: historyItems,
+        [CACHE_TIMESTAMP_KEY]: Date.now()
+    });
+
+    console.log(`[QuickLink] History loaded and cached in ${(performance.now() - loadStart).toFixed(1)}ms, ${historyItems.length} items`);
+    return historyItems;
+}
+
+// Get cached history or load fresh
+async function getCachedHistory() {
+    const result = await chrome.storage.local.get([CACHE_KEY, CACHE_TIMESTAMP_KEY]);
+    const cachedData = result[CACHE_KEY];
+    const cacheTime = result[CACHE_TIMESTAMP_KEY];
+
+    const now = Date.now();
+
+    // If cache exists and not expired, return it
+    if (cachedData && cacheTime && (now - cacheTime < CACHE_DURATION)) {
+        console.log(`[QuickLink] Using cached data (${cachedData.length} items, age: ${((now - cacheTime) / 1000).toFixed(0)}s)`);
+        return cachedData;
+    }
+
+    // Otherwise, load fresh
+    console.log('[QuickLink] Cache miss, loading fresh data');
+    return await loadAndCacheHistory();
+}
+
+// Display history
+async function displayHistory() {
+    const historyItems = await getCachedHistory();
     buildPopupDom(historyItems);
 }
 
-// Initialize on load
+// Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     const totalStart = performance.now();
+    console.log('[QuickLink] Popup initializing...');
 
     // Settings button
     document.getElementById('btn-settings').addEventListener('click', () => {
@@ -231,5 +241,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadConfig();
     await displayHistory();
-    console.log(`[QuickLink Popup] Total load time: ${(performance.now() - totalStart).toFixed(1)}ms`);
+
+    console.log(`[QuickLink] Total initialization time: ${(performance.now() - totalStart).toFixed(1)}ms`);
 });
